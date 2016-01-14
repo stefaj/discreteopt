@@ -26,7 +26,7 @@ bestPermutations arr values weights k = let
 										ans =  reverse $ sortBy (\x y -> (listMult x values) `compare` (listMult y values)) 
 											 		[x | x <- listPermutations arr, listMult x weights <= k]
 										helper (x:xs) = if x==0 then 0:helper xs else 0:xs
-										in if ans == [] then [helper arr] else ans
+										in if ans == [] then bestPermutations (helper arr) values weights k else ans
 
 
 
@@ -42,7 +42,7 @@ maximumArrByValue arrs values = reverse $ sortBy (\x y -> (listMult x values) `c
 
 diversification values weights k its n = head $ maximumArrByValue arrs values
 	where  
-		arrs = map (it2 its k weights values) [take n $ repeat 0, take n $ concat $ repeat [0,1], take n $ concat $ repeat [1,0], take n $ repeat 1]
+		arrs = map (it2 its k weights values) [take n $ repeat 0, take n $ concat $ repeat [0,1], take n $ concat $ repeat [1,0], take n $ concat $ repeat [1,0]]
 		it2 its k weights values arr = iterate' arr values weights k its		 
 
 
@@ -56,11 +56,16 @@ lineToItem :: String -> (Int, Int)
 lineToItem line = let [c1,c2] = words line in (read c1, read c2)
 
 main = do
-  content <- readFile "knapdata/ks_4_0"
+  args <- getArgs
+  content <- if length args > 0 then readFile (args !! 0) else getLine >>= readFile
+  let its = read (args !! 1) :: Int
   let (h:c) = lines content
   let (n,k) = lineToItem h
   let items = map lineToItem c
   let values = map fst items
   let weights = map snd items
-  let ans = diversification values weights k 10 n
+  let ans = diversification values weights k (1 + its + (truncate $ log $ fromIntegral n) :: Int) n
+  putStrLn $ (show $ listMult ans values) ++ " 0"
   putStrLn $ unwords $ map show ans
+  --putStrLn $ show $ listMult ans values
+  --putStrLn $ show $ listMult ans weights
