@@ -27,13 +27,6 @@ def solve_it(input_data):
     weight = 0
     taken = [0]*len(items)
 
-    for item in items:
-        if weight + item.weight <= capacity:
-            taken[item.index] = 1
-            value += item.value
-            weight += item.weight
-
-
 # Input:
 # Values (stored in array v)
 # Weights (stored in array w)
@@ -43,17 +36,34 @@ def solve_it(input_data):
     W = capacity
     N = item_count  
 
-    m = {}
-    for j in xrange(0,W):
-        m[(0, j)] = 0
+    V = {}
+    keep = {}
+    for w in xrange(0,W+1):
+        V[(0, w)] = 0
+        for i in xrange(0,N+1):
+            keep[(i,w)] = 0
 
-    for i in xrange(1,len(items)):
-        item = items[i]
-        for j in xrange(0,capacity):
-            if item.weight <= j:
-                m[(i,j)] = max(m[(i-1,j)], m[(i-1,j-item.weight)] + item.value)
+    for w in xrange(0,W+1):
+        for item in items:
+            i = item.index
+            if i==0:
+                continue
+            vi = item.value
+            wi = item.weight
+            if (item.weight > w):
+                V[(i,w)] = V[(i-1,w)]
+                value = V[(i,w)]
             else:
-                m[(i,j)] = m[(i-1,j)]
+                V[(i,w)] = max (V[(i-1,w)], vi + V[(i-1,w-wi)])
+                if (vi + V[(i-1,w-wi)] > V[(i-1,w)]):
+                    keep[(i,w)] = 1
+                value = V[(i,w)]
+
+    K = W
+    for i in xrange(N,0,-1):
+        if keep[(i,K)] == 1:
+            taken[i] = 1
+            K = K - items[i].weight
 
     # prepare the solution in the specified output format
     output_data = str(value) + ' ' + str(0) + '\n'

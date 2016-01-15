@@ -69,5 +69,7 @@ main = do
   let (opt, arr) = knapsack2 itemArr n k
   let t = traceback arr itemArr n k
   let output = normalizeOutput arr itemArr n k
+  let value = sum $ map fst $ map (\a -> items !! (a-1)) t
+  putStrLn $ (show value) ++ " 1"
   putStrLn $ printOutput output
   -- putStrLn $ show itemArr
