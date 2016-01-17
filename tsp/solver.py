@@ -15,7 +15,7 @@ def solve_it(input_data):
 
     # Runs the command: java Solver -file=tmp.data
 
-    process = Popen(['ls.exe', tmp_file_name, "1000000"], stdout=PIPE)
+    process = Popen(['ga.exe', tmp_file_name, "100000"], stdout=PIPE)
     (stdout, stderr) = process.communicate()
 
     # removes the temporay file
