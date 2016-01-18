@@ -121,7 +121,7 @@ rouletteSelection xs g = R.evalRand (R.fromList $ map (\(a,b) -> (a, toRational 
 
 
 evolver ff its n cities = do
-	let popCount = 40
+	let popCount = 80
 	let greedy = (greedySearch' cities)  
 	let vreedy = toIndexedCities cities greedy
 	let pops = vreedy:(take (popCount-1) $ permutations [0..n-1])
