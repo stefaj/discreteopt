@@ -1,6 +1,7 @@
 import Data.List
 import Data.Array
 import Data.Char (ord)
+import Data.Array.MArray
 
 -- root node and connected edges
 data Node a = Node a [Node a] | Empty
@@ -54,6 +55,36 @@ toAdjacency n@(Node a ns) array = foldr toAdjacency (helper n array) ns
 
 
 
+branchBound select prune bound
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- Structuring DFS
 
@@ -100,7 +131,58 @@ reverseE g = [(w,v) | (v,w) <- edges g]
 indegree :: Graph -> Table Int
 indegree g = outdegree $ transposeG g
 
-
-
 data Tree a = NodeT a (Forest a)
 type Forest a = [Tree a]
+
+dfs' :: Graph -> [Vertex] -> Forest Vertex
+dfs' g l = []
+
+dff :: Graph  -> Forest Vertex
+dff g = dfs' g (vertices g)
+
+
+preorder :: Tree a -> [a]
+preorder (NodeT a ts) = [a] ++ preorderF ts
+
+preorderF :: Forest a -> [a]
+preorderF ts = concat $ map preorder ts
+
+preOrd :: Graph -> [Vertex]
+preOrd g = preorderF $ dff g
+
+tabulate :: Bounds -> [Vertex] -> Table Int
+tabulate bnds vs = array bnds $ zip vs [1..]
+
+preArr :: Bounds -> Forest Vertex -> Table Int
+preArr bnds ts = tabulate bnds $ preorderF ts
+
+
+
+postorder :: Tree a -> [a]
+postorder (NodeT a ts) = postorderF ts ++ [a]
+
+postorderF :: Forest a -> [a]
+postorderF ts = concat $ map postorder ts
+
+postOrd :: Graph -> [Vertex]
+postOrd g = postorderF (dff g)
+
+topSort :: Graph -> [Vertex]
+topSort g = reverse $ postOrd g
+
+components :: Graph -> Forest Vertex
+components g = dff $ undirected g
+
+undirected :: Graph -> Graph
+undirected g = buildG (bounds g) $ edges g ++ reverseE g
+
+scc :: Graph -> Forest Vertex
+scc g = dfs' (transposeG g) $ reverse $ postOrd g
+
+scc' :: Graph -> Forest Vertex
+scc' g = dfs' g $ reverse $ postOrd $ transposeG g
+
+generate :: Graph -> Vertex -> Tree Vertex
+generate g v = NodeT v $ map (generate g) (g ! v)
+
+type Set s = MArray s Vertex Bool
