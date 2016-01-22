@@ -3,6 +3,7 @@ import System.Environment
 import Data.Maybe (fromJust)
 import Control.Monad
 import System.Random
+import Data.Array
 
 type City = (Float,Float)
 
@@ -63,6 +64,12 @@ swap vs i1 i2 = let
 	in (vs /// (i1, v2')) /// (i2,v1')
 
 
+swapA vs i1 i2 = let
+	v1' = vs ! i1
+	v2' = vs ! i2
+	in vs // [(i1,v2'),(i2,v1')]
+
+
 randomValList :: [a] -> IO a
 randomValList xs = do
 	let n = length xs
@@ -71,21 +78,23 @@ randomValList xs = do
 
 
 -- bestPermutation :: [City] -> [Int] -> IO [Int]
+randomRIONot a b vs = do
+	v <- randomRIO (a,b)
+	if v `elem` vs then randomRIO a b vs else return v 
 
 
-
-threeOpt :: [City] -> [Int] -> IO [Int]
+--threeOpt :: [City] -> [Int] -> IO [Int]
 threeOpt cities vs = do
 	let n = length vs
-	let swapList1 = [0..n-1]
-	a <- randomValList swapList1
-	let swapList2 = removeFromList a swapList1
-	b <- randomValList swapList2
-	let swapList3 = removeFromList b swapList2
-	c <- randomValList swapList3
-	let opt2 = swap vs a b
-	let opt31 = swap opt2 b c
-	let opt32 = swap opt2 a c
+	a <- randomRIONot (0,n-1) []
+	b <- randomRIONot (0,n-1) [a]
+	c <- randomRIONot (0,n-1) [a,b]
+	let opt2 = swapA vs a b
+	let opt31 = swapA opt2 b c
+	let opt32 = swapA opt2 a c
+	let ab = euclidianD (cities ! a) (cities ! b)
+	let bc = euclidianD (cities ! b) (cities ! c)
+	let ac = euclidianD (cities ! a) (cities ! c)
 	return $ head $ sortBy (\a b -> totalDist' a cities `compare` (totalDist' b cities)) [vs, opt2,opt31,opt32]
 	
 
@@ -112,6 +121,7 @@ totalDist (v1:v2:vs) = euclidianD v1 v2 + totalDist (v2:vs)
 totalDist' vs' cities = let vs = map (\a -> cities !! a) vs' in
 	(totalDist vs) + (euclidianD (head vs) (last vs))
 
+
 -- greedy stuff
 greedySearch [] = []
 greedySearch [c] = []
@@ -136,8 +146,8 @@ main = do
 	let (h:c) = lines contents
 	let n = (read h) :: Int
 	let cities = map lineToCity c
-	--let initial = toIndexedCities (greedySearch' cities) cities
-	let initial = [0..n-1]
+	let initial = toIndexedCities (greedySearch' cities) cities
+	
 	--putStrLn $ (show dist) ++ " 0"
 	
 	--greedy tsp51 is 506
