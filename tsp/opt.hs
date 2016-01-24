@@ -4,10 +4,12 @@ import Data.Maybe (fromJust)
 import Control.Monad
 import System.Random
 import Data.Array
+import Control.Monad
 
 type City = (Float,Float)
 
 euclidianD (x1,y1) (x2,y2) = sqrt ((x1-x2)**2 + (y1-y2)**2)
+euclidianDT (c1,c2) = euclidianD c1 c2
 
 argOrInput n = do
 	args <- getArgs
@@ -78,25 +80,90 @@ randomValList xs = do
 
 
 -- bestPermutation :: [City] -> [Int] -> IO [Int]
+randomRIONot :: Int -> Int -> [Int] -> IO Int
 randomRIONot a b vs = do
 	v <- randomRIO (a,b)
-	if v `elem` vs then randomRIO a b vs else return v 
+	if v `elem` vs then randomRIONot a b vs else return v 
 
 
---threeOpt :: [City] -> [Int] -> IO [Int]
+randomRList :: [a] -> IO a
+randomRList xs = do
+	i <- randomRIO (0, (length xs) - 1)
+	return $ xs !! i
+
+
+type IOSearchFunction = Array Int Int -> IO (Array Int Int) 
+
+averageDist cities = let edges = uPerms cities
+		in (sum $ map euclidianDT edges) / (fromIntegral $ length cities)
+	where 
+		uPerms [] = []
+		uPerms (c:cs) = liftM2 (,) [c] cs ++ (uPerms cs)
+
+
+heuristicSwap :: Float -> Array Int City -> IOSearchFunction
+heuristicSwap avgDist cities vs = do
+	let n = 1 + (snd $ bounds vs)
+	i <- randomRIO (0,n-1)
+	let cj = head $ [j | j <- [0..n-1], let c = cities ! j, j /= i, euclidianD c (cities ! i) < avgDist/4] ++ [0..i-1] ++ [i+1..n-1]
+	return $ head $ sortBy (\a b -> totalDistA a cities `compare`  (totalDistA b cities) ) [swapA vs i cj, vs]
+
+e = exp 1 :: Float
+
+annealing f a s t 0 mini = return $ snd mini
+annealing f a s t its (mv,mi) = do
+	let n = length s
+	j <- randomRIO (1,n-1)
+	k <- randomRIONot 1 (n-1) [j]
+	let s' = a k j s
+	r <- randomRIO (0,0.9999)
+	let t' = if its `mod` 20 == 0 then t*0.95 else t
+	case () of _
+				| (f s') < (f s) -> annealing f a s' t' (its-1) (if f s' < mv then (f s',s') else (mv,mi))
+				| otherwise -> if r <= e ** ((f s - (f s') )/t)
+						then annealing f a s' t' (its-1) (mv,mi)
+						else annealing f a s t' (its-1) (mv,mi)
+
+
+
+
+a k j s = if k > j then (take (j) s) ++ (reverse $ splice s j k) ++  (drop (k+1) s)
+	else (take (k) s) ++ (reverse $ splice s k j) ++  (drop (j+1) s)
+--splice xs _ (-1) = []
+--splice (x:xs) 0 j = x:(splice xs 0 (j-1))
+--splice (x:xs) i j = splice xs (i-1) (j-1)
+--splice [] _ _ = []
+
+splice xs i j = take (j-i+1) $ (drop i xs)
+
+
+splice3 xs i j = [take (i) xs] ++ [splice xs i j] ++  [drop (j+1) xs]
+
+
+
+
+annealingTsp cities vs temp its = annealing (flip totalDist' cities) a vs temp its (999999999,[])
+
+threeOpt :: Array Int City -> IOSearchFunction
 threeOpt cities vs = do
-	let n = length vs
-	a <- randomRIONot (0,n-1) []
-	b <- randomRIONot (0,n-1) [a]
-	c <- randomRIONot (0,n-1) [a,b]
-	let opt2 = swapA vs a b
-	let opt31 = swapA opt2 b c
-	let opt32 = swapA opt2 a c
-	let ab = euclidianD (cities ! a) (cities ! b)
-	let bc = euclidianD (cities ! b) (cities ! c)
-	let ac = euclidianD (cities ! a) (cities ! c)
-	return $ head $ sortBy (\a b -> totalDist' a cities `compare` (totalDist' b cities)) [vs, opt2,opt31,opt32]
-	
+		let n = 1 + (snd $ bounds vs)
+		a <- randomRIONot 1 (n-1) []
+		b <- randomRIONot 1 (n-1) [a]
+		c <- randomRIONot 1 (n-1) [a,b]
+		let oldEges = map (\(q,w) -> (cities ! q, cities ! w)) $ [(vs ! (a-1), vs ! a),(vs ! (b-1),vs ! b)]
+		let opt2 = swapA vs a b
+		let newEdges = map (\(q,w) -> (cities ! q, cities ! w)) $ [(opt2 ! (a-1), opt2 ! a),(opt2 ! (b-1),opt2 ! b)]
+		return $ if dist newEdges < dist oldEges then opt2 else vs
+		--let opt31 = swapA opt2 b c
+		--let opt32 = swapA opt2 a c
+
+		--return $ getMaxA cities [vs,opt2,opt31,opt32]
+	where
+		getMaxA :: Array Int City -> [Array Int Int] -> Array Int Int
+		getMaxA cities ass = head $ sortBy (\a b -> totalDistA a cities `compare` (totalDistA b cities)) ass
+		getEdges :: Int -> Int -> [(City,City)]
+		getEdges n i = map (\(j,k) -> (cities ! j, cities ! k))  $ filter (\(a,b) -> a>=0 && b < n) [(i-1,i),(i,i+1)]
+		dist edges = sum $ map euclidianDT edges
 
 --intersections cities vs = 
 
@@ -105,7 +172,7 @@ threeOpt cities vs = do
 -- 2 - create permutation, swap 2 vertices to reduce total distance
 -- 3 - combine 1 and 2
 
-iterate' :: ([Int] -> IO [Int]) -> Int -> [Int] -> IO [Int]
+--iterate' :: ([Int] -> IO [Int]) -> Int -> [Int] -> IO [Int]
 iterate' action 0 inp = action inp
 iterate' action n inp = do
 	k <- action inp
@@ -120,7 +187,10 @@ totalDist (v:[]) = 0
 totalDist (v1:v2:vs) = euclidianD v1 v2 + totalDist (v2:vs) 
 totalDist' vs' cities = let vs = map (\a -> cities !! a) vs' in
 	(totalDist vs) + (euclidianD (head vs) (last vs))
-
+totalDistA vs cities = let
+		vs' = elems vs
+		cities' = elems cities
+		in totalDist' vs' cities'
 
 -- greedy stuff
 greedySearch [] = []
@@ -146,15 +216,17 @@ main = do
 	let (h:c) = lines contents
 	let n = (read h) :: Int
 	let cities = map lineToCity c
+	--let cities' = array (0,n-1) [(i,cities !! i) | i <- [0..n-1]]
 	let initial = toIndexedCities (greedySearch' cities) cities
-	
-	--putStrLn $ (show dist) ++ " 0"
+	--let initial' = array (0,n-1) [(i, initial !! i) | i <- [0..n-1]]
+	let avgDist = averageDist cities
 	
 	--greedy tsp51 is 506
-	--let ans = initial
-	let action = threeOpt cities
-	ans <- iterate' action its initial
-	
+
+	--let action = threeOpt cities'
+	--ans <- iterate' action its initial'
+	ans <- annealingTsp cities initial (avgDist*(fromIntegral n)) its
+
 	let dist = totalDist' ans cities
 	putStrLn $ show dist ++ " 0"
 	
