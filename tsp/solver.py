@@ -15,8 +15,8 @@ def solve_it(input_data):
 
     # Runs the command: java Solver -file=tmp.data
 
-    process = Popen(['./opt', 
-tmp_file_name, "10000"], stdout=PIPE)
+    process = Popen(['opt.exe', 
+tmp_file_name, "4000000"], stdout=PIPE)
     (stdout, stderr) = process.communicate()
 
     # removes the temporay file
