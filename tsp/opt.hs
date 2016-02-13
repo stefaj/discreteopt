@@ -231,10 +231,5 @@ main = do
 	putStrLn $ show dist ++ " 0"
 	
 	putStrLn $ unwords $ map show ans
-	-- putStrLn $ show $ (its + 1)
 
 
--- some optimizations for the greedy is to try different methods in order to visit cities. try taking longest path first. 
-
-
--- give each city a value, the total distance to all nearby cities. call this cluster value. visit big city with low cluster value. visit nearby cities. visit next big city. repeat.
