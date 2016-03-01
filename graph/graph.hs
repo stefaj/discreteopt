@@ -8,15 +8,15 @@ removeFromList v [] = []
 removeFromList v (x:xs) = if v == x then xs else x:(removeFromList v xs)
 
 graph = [
-            [1,2],
-            [3,4],
-            [3],
-            [],
-            []
+            [1,2],  -- 0
+            [3,4],  -- 1
+            [0,3],    -- 2
+            [],     -- 3
+            []      -- 4
         ] :: [[Int]]
 
 edgeWeights :: Array (Int, Int) Int
-edgeWeights = array ((0,0),(4,4)) $  [((0,1),3),((1,4),1),((0,2),2),((2,3),1),((1,3),1)]
+edgeWeights = array ((0,0),(4,4)) $  [((0,1),3),((1,4),1),((0,2),2),((2,0),2),((2,3),1),((1,3),1)]
 
 
 dijkstra s t graph weights = let n = length graph in

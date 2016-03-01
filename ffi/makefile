@@ -1,18 +1,29 @@
-lib=/opt/ibm/ILOG/CPLEX_Studio_Community1263/cplex/lib/x86-64_linux/static_pic/lib/
-include=/opt/ibm/ILOG/CPLEX_Studio_Community1263/cplex/include/
+CPLEX_DIR = /opt/ibm/ILOG/CPLEX_Studio_Community1263/cplex
+lib=$(CPLEX_DIR)/lib/x86-64_linux/static_pic/
+CPLEX_INC = $(CPLEX_DIR)/include
 sources = test.c
 executable = test
 
-export LIBRARY_PATH=$(lib) \
-export INCLUDE=$(include)
-export CPATH=$(include)
+
+COPT = -m64 -fPIC -fno-strict-aliasing
+CLNFLAGS = -lcplex -lm -lpthread
+
+CFLAGS = $(COPT)  -I$(CPLEX_INC) -L$(lib)
 
 
-all: test
+# export LIBRARY_PATH=$(lib) \
+# export INCLUDE=$(include) \
+# export CPATH=$(include)
+
+CC = gcc -O0
+
+
+all: 	clean
+	test
 
 test:
 	@echo Building...
-	gcc -DIL_STD -L$(include) -I$(lib) -lm -lpthread $(sources) -o $(executable)
+	$(CC) -DIL_STD  $(CFLAGS) $(sources) -o $(executable) $(CLNFLAGS)
 	@echo Running...
 	./$(executable)
 
