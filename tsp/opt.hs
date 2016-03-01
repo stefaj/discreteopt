@@ -19,7 +19,7 @@ argOrInput n = do
 		return $ args !! n
 
 (///) (x:xs) (0,v) = v:xs
-(///) (x:xs) (ind,v) = x : (///) xs (ind-1,v)  		
+(///) (x:xs) (ind,v) = x : (///) xs (ind-1,v)
 
 
 removeFromList v [] = []
@@ -32,13 +32,13 @@ buildInitial cities vs n = buildInitial cities ((cities !! n):cities) (n-1)
 
 getLines [] = []
 getLines [v] = []
-getLines (v1:v2:vs) = (v1,v2):getLines (v2:vs) 
+getLines (v1:v2:vs) = (v1,v2):getLines (v2:vs)
 
 intersection :: (City,City) -> (City,City) -> Bool
 intersection ((ax,ay),(bx,by)) ((cx,cy),(dx,dy))
 	| h > 0 && h < 1 = True
 	| otherwise = False
-	where 
+	where
 		cross (vx,vy) (wx,wy) = vx*wy - vy*wx
 		dot (vx,vy) (wx,wy) = vx*wx + vy*wy
 		(/-) (x1,y1) (x2,y2) = (x1-x2,y1-y2)
@@ -51,18 +51,18 @@ intersection ((ax,ay),(bx,by)) ((cx,cy),(dx,dy))
 
 -- this function is really slow due to replicateM
 intersectionCount :: [City] -> [Int] -> Int
-intersectionCount cities vs' = 	let 
-									vs = map (\a -> cities !! a) vs' 
+intersectionCount cities vs' = 	let
+									vs = map (\a -> cities !! a) vs'
 									l = getLines vs
 									l2 = replicateM 2 l
-								in 
+								in
 									length $ filter (\[a,b] -> intersection a b) l2
 
 
---[0,3,1,5] 
+--[0,3,1,5]
 swap vs i1 i2 = let
 	v1' = vs !! i1
-	v2' = vs !! i2 
+	v2' = vs !! i2
 	in (vs /// (i1, v2')) /// (i2,v1')
 
 
@@ -83,7 +83,7 @@ randomValList xs = do
 randomRIONot :: Int -> Int -> [Int] -> IO Int
 randomRIONot a b vs = do
 	v <- randomRIO (a,b)
-	if v `elem` vs then randomRIONot a b vs else return v 
+	if v `elem` vs then randomRIONot a b vs else return v
 
 
 randomRList :: [a] -> IO a
@@ -92,11 +92,11 @@ randomRList xs = do
 	return $ xs !! i
 
 
-type IOSearchFunction = Array Int Int -> IO (Array Int Int) 
+type IOSearchFunction = Array Int Int -> IO (Array Int Int)
 
 averageDist cities = let edges = uPerms cities
 		in (sum $ map euclidianDT edges) / (fromIntegral $ length cities)
-	where 
+	where
 		uPerms [] = []
 		uPerms (c:cs) = liftM2 (,) [c] cs ++ (uPerms cs)
 
@@ -165,7 +165,7 @@ threeOpt cities vs = do
 		getEdges n i = map (\(j,k) -> (cities ! j, cities ! k))  $ filter (\(a,b) -> a>=0 && b < n) [(i-1,i),(i,i+1)]
 		dist edges = sum $ map euclidianDT edges
 
---intersections cities vs = 
+--intersections cities vs =
 
 -- local search ideas
 -- 1 - minimize number of intersections between edges
@@ -183,8 +183,8 @@ iterate' action n inp = do
 
 totalDist [] = 0
 
-totalDist (v:[]) = 0 
-totalDist (v1:v2:vs) = euclidianD v1 v2 + totalDist (v2:vs) 
+totalDist (v:[]) = 0
+totalDist (v1:v2:vs) = euclidianD v1 v2 + totalDist (v2:vs)
 totalDist' vs' cities = let vs = map (\a -> cities !! a) vs' in
 	(totalDist vs) + (euclidianD (head vs) (last vs))
 totalDistA vs cities = let
@@ -196,7 +196,7 @@ totalDistA vs cities = let
 greedySearch [] = []
 greedySearch [c] = []
 greedySearch (c:cs) = closestCity : (greedySearch (closestCity:cs'))
-	where 
+	where
 		closestCity = head $ sortBy (\c1 c2 -> (euclidianD c1 c) `compare` (euclidianD c2 c)) cs
 		cs' = removeFromList closestCity cs
 
@@ -208,7 +208,7 @@ toIndexedCities vs cities = map (\a -> fromJust $ a `elemIndex` cities) vs
 
 
 lineToCity :: String -> City
-lineToCity l = let [x,y] = map read (words l) in (x,y) 
+lineToCity l = let [x,y] = map read (words l) in (x,y)
 
 main = do
 	contents <- argOrInput 0 >>= readFile
@@ -220,7 +220,7 @@ main = do
 	let initial = toIndexedCities (greedySearch' cities) cities
 	--let initial' = array (0,n-1) [(i, initial !! i) | i <- [0..n-1]]
 	let avgDist = averageDist cities
-	
+
 	--greedy tsp51 is 506
 
 	--let action = threeOpt cities'
@@ -229,7 +229,5 @@ main = do
 
 	let dist = totalDist' ans cities
 	putStrLn $ show dist ++ " 0"
-	
+
 	putStrLn $ unwords $ map show ans
-
-
