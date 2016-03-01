@@ -3,9 +3,18 @@ include=/opt/ibm/ILOG/CPLEX_Studio_Community1263/cplex/include/
 sources = test.c
 executable = test
 
+export LIBRARY_PATH=$(lib) \
+export INCLUDE=$(include)
+export CPATH=$(include)
+
+
 all: test
 
-test:	
-	export LIBRARY_PATH=$(lib); export INCLUDE=$(include); export CPATH=$(include);	gcc -DIL_STD -L$(include) -I$(lib) -lm -lpthread $(sources) -o $(executable)
-	echo "Running..."
+test:
+	@echo Building...
+	gcc -DIL_STD -L$(include) -I$(lib) -lm -lpthread $(sources) -o $(executable)
+	@echo Running...
 	./$(executable)
+
+clean:
+	rm $(executable)
