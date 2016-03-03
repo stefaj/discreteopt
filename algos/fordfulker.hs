@@ -3,6 +3,7 @@
 
 import Data.List as L
 import Data.Array
+import Data.Maybe
 import Control.Monad
 
 caps :: [((Int, Int), Double)]
@@ -20,11 +21,11 @@ caps = [
 
 capAt = buildCapArray 5 caps
 
-getDirection e cap = let c = cap ! e
+getDirection e capA = let c = capA ! e
     in if c >= 0 then 1 else -1
 
 flow :: Array (Int, Int) Double
-flow = array ((0,0), (5,5)) [(i,5) | i <- liftM2 (,) [0..5] [0..5]]
+flow = array ((0,0), (5,5)) [(i,0) | i <- liftM2 (,) [0..5] [0..5]]
 
 adjacencyt = buildAdjacency caps 5
 
@@ -43,15 +44,52 @@ lookupDef val list def = maybe def id (lookup val list)
 isFlowSatisfied e@(i,j) flowA capA =
     let f = flowA ! e
         c = capA ! e
-    in (f >= 0) && (f <= c)
+        forward = getDirection e capA > 0
+    in (f > 0 && (not forward)) || (f < c && forward)
 
+-- this is actually dfs
 -- returns [(1,3), (3,4), (4,7)] etc
-bfsPath adj s e cond = let path = bfs adj s e [] [] cond
-    in tail $ zip (0:path) path
+bfsPath adj s e cond = do
+    path <- bfs adj s e [] [] cond
+    return $ tail $ zip (0:path) path
 bfs _ s e path _ condition
     | s == e = Just $ reverse (e:path)
 bfs adjacency s e path visited condition
     | neighbors == [] = Nothing
-    | otherwise = head $ map
-            (\a -> bfs adjacency a e (s:path) (s:visited) condition) neighbors
+    | otherwise = head $ (filter (\a -> isJust a) $ map
+            (\a -> bfs adjacency a e (s:path) (s:visited) condition) neighbors) ++ [Nothing]
     where neighbors = filter (\a -> condition (s,a)) $ filter (not . flip elem visited) $ adjacency ! s
+
+fordFulkers :: Int -> Int -> [((Int, Int), Double)] -> Int -> Array (Int, Int) Double
+fordFulkers s t cap b =
+    let flow = array ((0,0), (b,b)) [(i,0) | i <- liftM2 (,) [0..b] [0..b]]
+    in search flow
+    where
+        biAdj = buildAdjacencyBiDir cap b
+        adj = buildAdjacency cap b
+        capA = buildCapArray b cap
+        search :: Array (Int, Int) Double -> Array (Int, Int) Double
+        search flow = let
+            cond e = isFlowSatisfied e flow capA
+            path = bfsPath biAdj s t cond
+            in case path of
+                (Just path') -> search $ augmentPath flow (getMaxRes flow capA path') path' capA
+                Nothing -> flow
+
+getMaxRes flow capA path = getMaxRes' flow capA path 99999999999
+getMaxRes' flow capA [] m = m
+getMaxRes' flow capA (e:paths) m = let
+    c = capA ! e
+    f = flow ! e
+    in getMaxRes' flow capA paths $ minimum [m, if (getDirection e capA) > 0 then c - f else f - 0]
+
+augmentPath flow _ [] _ = flow
+augmentPath flow val (e:paths) capA = let
+    curfe = flow ! e
+    forward = (getDirection e capA) > 0
+    newfe = if forward then curfe + val else curfe - val
+    in augmentPath (flow // [(e,newfe)]) val paths capA
+
+getFlowTo p flow b = sum $ map (\a -> flow ! (a,p)) [0..5]
+getFlowFrom p flow b = sum $ map (\a -> flow ! (p,a)) [0..5]
+divergence p flow b = (getFlowFrom p flow b) - (getFlowTo p flow b)
