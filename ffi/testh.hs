@@ -31,7 +31,9 @@ sol' = withEnv $ \env -> do
 
         st = [[-1,1,1], [1,-3,1]]
         sparsed = map (\(x,y) -> (Row y, Col x, st !! y !! x )) [(x,y) | x <- [0..2], y <- [0..1]]
-
+    putStrLn $ show obj
+    putStrLn $ show sparsed
+    putStrLn $ show xbnds
     statusLp <- copyLp env lp objsen obj rhs sparsed (V.fromList xbnds)
 
     case statusLp of
