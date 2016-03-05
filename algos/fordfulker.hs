@@ -48,6 +48,7 @@ isFlowSatisfied e@(i,j) flowA capA =
     in (f > 0 && (not forward)) || (f < c && forward)
 
 -- this is actually dfs
+
 -- returns [(1,3), (3,4), (4,7)] etc
 bfsPath adj s e cond = do
     path <- bfs adj s e [] [] cond
