@@ -1,15 +1,7 @@
-<<<<<<< HEAD
 import qualified Data.Vector as V
 import Control.Applicative
 import System.Environment
-=======
-import Data.List
-import System.Environment
-import Data.Text (pack, unpack, splitOn)
-import Control.Monad
-import Control.Applicative
-import qualified Data.Vector as V
->>>>>>> 7aedce37a63937ed57deb6f1888ab0f1e523be2a
+
 
 argOrInput n = do
 	args <- getArgs
@@ -18,23 +10,6 @@ argOrInput n = do
 	else
 		return $ args !! n
 
-<<<<<<< HEAD
-getNextArrowPos t (i,j) = let a = t V.! i V.! j in
-    case a of
-        '>'
-        '^'
-        'v'
-        '<' ->
-        '.' -> Just (i,j)
-        otherwise -> Nothing
-
-linesToTestCase [] testCases = reverse $ testCases
-linesToTestCase (h:hs) t = let
-        [i,j] = read <$> (words h)
-        (rows, other) = splitAt i hs
-        rowVecs = V.fromList $ V.fromList <$> rows
-    in linesToTestCase other (rowVecs:t)
-=======
 type Map = V.Vector (V.Vector Char)
 
 linesToTestCase :: [String] -> [Map] -> [Map]
@@ -78,10 +53,6 @@ isSolutionSafe mp (i,j) visited =
                 Just (i',j') -> isSolutionSafe mp (i',j') ((i,j):visited)
 
 
-
-
-
-
 outputAns i a = "Case #" ++ (show i) ++ ": " ++ (show a)
 
 showAns [] _ = []
@@ -90,7 +61,39 @@ showAns (sentences:ts) i =
 
 getAns t = 33
 
->>>>>>> 7aedce37a63937ed57deb6f1888ab0f1e523be2a
+
+
+edges = [(0,1),(1,4),(4,3),(0,2),(2,4),(2,3),(1,2)]
+buildAdjacency edges = let n = length edges
+    in buildAdjacency' edges $ V.replicate n []
+buildAdjacency' [] arr = arr
+buildAdjacency' ((i,j):cs) arr =
+    let cur = (arr ! i)
+        added = if j `elem` cur then cur else j  : cur
+    in buildAdjacency' cs (arr V.// [(i,added)])
+
+testGraph =
+    [
+    [1,2,3], --0
+    [4],
+    [],
+    [],
+    [5],
+    []]
+
+bfs graph s cond path visited
+    | cond s = path
+bfs graph
+
+tbf [] = []
+tbf xs = map nodeValue xs ++ tbf (concat (map leftAndRightNodes xs))
+nodeValue (Node a _ _) = a
+leftAndRightNodes (Node _ Empty Empty) = []
+leftAndRightNodes (Node _ Empty b)     = [b]
+leftAndRightNodes (Node _ a Empty)     = [a]
+leftAndRightNodes (Node _ a b)         = [a,b]
+
+
 
 main = do
     fileName <- argOrInput 0
