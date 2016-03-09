@@ -1,6 +1,8 @@
-import qualified Data.Vector as V
-import Control.Applicative
+import Data.List
 import System.Environment
+import Data.Text (pack, unpack, splitOn)
+import Control.Monad
+import Control.Applicative
 
 argOrInput n = do
 	args <- getArgs
@@ -9,21 +11,21 @@ argOrInput n = do
 	else
 		return $ args !! n
 
-getNextArrowPos t (i,j) = let a = t V.! i V.! j in
-    case a of
-        '>'
-        '^'
-        'v'
-        '<' ->
-        '.' -> Just (i,j)
-        otherwise -> Nothing
-
 linesToTestCase [] testCases = reverse $ testCases
 linesToTestCase (h:hs) t = let
-        [i,j] = read <$> (words h)
-        (rows, other) = splitAt i hs
-        rowVecs = V.fromList $ V.fromList <$> rows
-    in linesToTestCase other (rowVecs:t)
+        n = read h
+        (sentences, other) = splitAt n hs
+    in linesToTestCase other (sentences:t)
+
+
+outputAns i a = "Case #" ++ (show i) ++ ": " ++ (show a)
+
+showAns [] _ = []
+showAns (sentences:ts) i =
+    (outputAns i $ getAns sentences) : showAns ts (i+1)
+
+getAns t = 33
+
 
 main = do
     fileName <- argOrInput 0
@@ -33,4 +35,4 @@ main = do
     --let output = unlines $ showAns testCases 1
     --writeFile (fileName ++ ".out") output
     --putStrLn $ show $ testCases !! 0
-    return $ testCases
+    putStrLn $ show testCases
