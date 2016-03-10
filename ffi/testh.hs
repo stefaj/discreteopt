@@ -3,11 +3,24 @@
 module Main where
 
 import qualified Data.Vector as V
+import qualified Data.Vector.Storable as VS
 
 import Foreign.C
 
 import CPLEX.Param
 import CPLEX
+import CPLEX.Bindings
+import System.IO.Unsafe (unsafePerformIO)
+import Foreign.ForeignPtr.Safe(newForeignPtr_)
+
+
+cb :: CpxLp -> CIncumbentCallback
+cb lp env _ wherefrom _ objval xptr feasptr usrptr = do
+    foreignPtr <- newForeignPtr_ xptr
+    let xs = VS.unsafeFromForeignPtr0 foreignPtr 3
+    let _ = unsafePerformIO $ putStrLn "called"
+    --addCuts (CpxEnv env) lp 1 (V.fromList [L 10]) [(Row 0,Col 0, 0)]
+    return 2
 
 cpx_ON :: CInt
 cpx_ON  =  1
@@ -20,7 +33,8 @@ main = sol' >>= print
 sol' :: IO ()
 sol' = withEnv $ \env -> do
     -- prints some useful output stuff
-  setIntParam env CPX_PARAM_SCRIND cpx_ON
+  --setIntParam env CPX_PARAM_SCRIND cpx_ON
+
   -- CHECKS if data is shap
  -- setIntParam env CPX_PARAM_DATACHECK cpx_ON
   withLp env "testprob" $ \lp -> do
@@ -35,10 +49,19 @@ sol' = withEnv $ \env -> do
     putStrLn $ show sparsed
     putStrLn $ show xbnds
     statusLp <- copyLp env lp objsen obj rhs sparsed (V.fromList xbnds)
-
     case statusLp of
       Nothing -> return ()
       Just msg -> error $ "CPXcopylp error: " ++ msg
+
+    statcuts <- addRows env lp 0 3 3 (V.fromList [G 20]) [(Row 2, Col 1, 1 )]
+    case statcuts of
+        Nothing -> return ()
+        Just msg -> error $ "CPXcopylp error: " ++ msg
+
+    --cbstat <- setIncumbentCallback env (cb lp)
+    --case cbstat of
+    --    Nothing -> putStrLn "callback registered"
+    --    Just msg -> putStrLn $ "callback error: " ++ msg
 
     ------------------------
     -- let qmat = [ (Row 0, Col 0, -33)
@@ -55,10 +78,15 @@ sol' = withEnv $ \env -> do
     --   Just msg -> error $ "CPXcopyquad error: " ++ msg
 
     ------------------------
+
+
     statusOpt <- qpopt env lp
     case statusOpt of
       Nothing -> return ()
       Just msg -> error $ "CPXqpopt error: " ++ msg
+
+
+
 
     statusSol <- getSolution env lp
     case statusSol of
