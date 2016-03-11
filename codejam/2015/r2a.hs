@@ -52,6 +52,11 @@ isSolutionSafe mp (i,j) visited =
                 Nothing -> False
                 Just (i',j') -> isSolutionSafe mp (i',j') ((i,j):visited)
 
+isMapSafe mp = let
+    n = V.length mp
+    m = V.length $ mp V.! 0
+    in map (\(i,j) -> isSolutionSafe mp (i,j) []) [(i,j) | i <- [0..m-1], j <- [0..n-1]]
+
 
 outputAns i a = "Case #" ++ (show i) ++ ": " ++ (show a)
 
@@ -68,10 +73,31 @@ buildAdjacency edges = let n = length edges
     in buildAdjacency' edges $ V.replicate n []
 buildAdjacency' [] arr = arr
 buildAdjacency' ((i,j):cs) arr =
-    let cur = (arr ! i)
+    let cur = (arr V.! i)
         added = if j `elem` cur then cur else j  : cur
     in buildAdjacency' cs (arr V.// [(i,added)])
 
+-- Returns [5,4,3,2,1,0], i.e. the path searched
+-- testGraph =
+--     [
+--     [1,2,3], --0
+--     [4],
+--     [],
+--     [],
+--     [5],
+--     []
+--     ] :: [[Int]]
+-- nodeWeights = [0,0,0,9,0,9] :: [Int]
+-- testCond n = nodeWeights !! n == 9
+--
+-- bfs graph s cond = bfs' graph [s] [] []
+--     where
+--         bfs' graph [] path _ = path
+--         bfs' graph (q:qs) path visited
+--             | not (q `elem` visited) = bfs' graph (qs ++ (graph !! q)) (q:path) (q:visited)
+--             | otherwise = bfs' graph qs path visited
+--
+--
 testGraph =
     [
     [1,2,3], --0
@@ -79,19 +105,23 @@ testGraph =
     [],
     [],
     [5],
-    []]
+    []
+    ] :: [[Int]]
+nodeWeights = [0,0,0,9,0,9] :: [Int]
+testCond n = n==5
 
-bfs graph s cond path visited
-    | cond s = path
-bfs graph
+bfs graph s cond = bfs' graph [(s,[s])] []
+    where
+        bfs' graph [] _ = []
+        bfs' graph ((v,p):qs) visited
+            | cond v = reverse $ p
+            | not (v `elem` visited) = bfs' graph
+                        (qs ++ (map (\v' -> (v', v':p)) (graph V.! v) ))
+                        (v:visited)
+            | otherwise = bfs' graph qs visited
 
-tbf [] = []
-tbf xs = map nodeValue xs ++ tbf (concat (map leftAndRightNodes xs))
-nodeValue (Node a _ _) = a
-leftAndRightNodes (Node _ Empty Empty) = []
-leftAndRightNodes (Node _ Empty b)     = [b]
-leftAndRightNodes (Node _ a Empty)     = [a]
-leftAndRightNodes (Node _ a b)         = [a,b]
+
+
 
 
 
