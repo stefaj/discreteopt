@@ -1,3 +1,4 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module Main where
@@ -10,21 +11,48 @@ import Foreign.C
 import CPLEX.Param
 import CPLEX
 import CPLEX.Bindings
-import System.IO.Unsafe (unsafePerformIO)
-import Foreign.ForeignPtr.Safe(newForeignPtr_)
+import System.IO.Unsafe(unsafePerformIO)
+import Foreign.ForeignPtr(newForeignPtr_)
+import Foreign.Ptr(nullPtr, nullFunPtr, freeHaskellFunPtr)
+import Foreign.Storable(peek, poke)
 
 
-cb :: CpxLp -> CIncumbentCallback
-cb lp env _ wherefrom _ objval xptr feasptr usrptr = do
-    foreignPtr <- newForeignPtr_ xptr
-    let xs = VS.unsafeFromForeignPtr0 foreignPtr 3
-    let _ = unsafePerformIO $ putStrLn "called"
+{-# NOINLINE cb #-}
+cb :: CCutCallback
+cb env' cbdata wherefrom cbhandle ptrUser = do
+    let env = CpxEnv env'
+    -- foreignPtr <- newForeignPtr_ xptr
+    -- let xs = VS.unsafeFromForeignPtr0 foreignPtr 3
+    (_, xs) <- getCallbackNodeX env cbdata (fromIntegral wherefrom) 0 2
+    putStrLn $ "pudding pie xs " ++ (show xs)
+    lpstat <- getCallbackLP env cbdata (fromIntegral wherefrom)
+
+    case lpstat of
+        Left err -> putStrLn $ "Cobus Callback Error " ++ err
+        Right lp -> do
+
+            if xs VS.! 2 > 20 then do
+                putStrLn "x too high, cutting"
+                addCutFromCallback env cbdata wherefrom 3 (L 20) [(Col 0,0), (Col 1,0), (Col 2, 1)] CPX_USECUT_FORCE
+                putStrLn "cut added"
+                --poke feasptr 0
+                -- statcuts <- addLazyConstraints env lp 3 (V.fromList [L 20]) [(Row 0, Col 0, 0 ), (Row 0, Col 1, 0 ), (Row 0, Col 2, 1 )]
+                -- case statcuts of
+                --     Nothing -> return ()
+                --     Just msg -> error $ "CPXcopylp error: " ++ msg
+            else
+                return ()
+    return 0
+
+    --foreignPtr <- newForeignPtr_ xptr
+    --let xs = VS.unsafeFromForeignPtr0 foreignPtr 3
+    --let _ = unsafePerformIO $ putStrLn "called"
     --addCuts (CpxEnv env) lp 1 (V.fromList [L 10]) [(Row 0,Col 0, 0)]
-    return 2
+
 
 cpx_ON :: CInt
 cpx_ON  =  1
-cpx_OFF :: Integer
+cpx_OFF :: CInt
 cpx_OFF =  0
 
 main :: IO ()
@@ -37,6 +65,8 @@ sol' = withEnv $ \env -> do
 
   -- CHECKS if data is shap
  -- setIntParam env CPX_PARAM_DATACHECK cpx_ON
+  setIntParam env CPX_PARAM_MIPCBREDLP cpx_OFF
+  setIntParam env CPX_PARAM_PRELINEAR cpx_OFF
   withLp env "testprob" $ \lp -> do
     let objsen = CPX_MAX
         obj = V.fromList [1,2,3]
@@ -45,50 +75,37 @@ sol' = withEnv $ \env -> do
 
         st = [[-1,1,1], [1,-3,1]]
         sparsed = map (\(x,y) -> (Row y, Col x, st !! y !! x )) [(x,y) | x <- [0..2], y <- [0..1]]
+        types = [CPX_INTEGER,CPX_INTEGER,CPX_CONTINUOUS]
     putStrLn $ show obj
     putStrLn $ show sparsed
     putStrLn $ show xbnds
-    statusLp <- copyLp env lp objsen obj rhs sparsed (V.fromList xbnds)
+    statusLp <- copyMip env lp objsen obj rhs sparsed (V.fromList xbnds) (V.fromList types)
     case statusLp of
       Nothing -> return ()
       Just msg -> error $ "CPXcopylp error: " ++ msg
 
-    statcuts <- addRows env lp 0 3 3 (V.fromList [G 20]) [(Row 2, Col 1, 1 )]
-    case statcuts of
-        Nothing -> return ()
-        Just msg -> error $ "CPXcopylp error: " ++ msg
+    -- statcuts <- addLazyConstraints env lp 3 (V.fromList [L 20]) [(Row 0, Col 0, 0 ), (Row 0, Col 1, 0 ), (Row 0, Col 2, 1 )]
+    -- case statcuts of
+    --     Nothing -> return ()
+    --     Just msg -> error $ "CPXcopylp error: " ++ msg
+    let CpxEnv env' = env
+    --ptr <- c_createCutCallbackPtr cb
+    status <- setCutCallback env cb
 
-    --cbstat <- setIncumbentCallback env (cb lp)
-    --case cbstat of
-    --    Nothing -> putStrLn "callback registered"
-    --    Just msg -> putStrLn $ "callback error: " ++ msg
+    case status of
+      Nothing -> return ()
+      Just msg -> putStrLn $ "ERROR ON THE CALLBACK HOOK: " ++ msg
+    putStrLn "cb registered"
 
-    ------------------------
-    -- let qmat = [ (Row 0, Col 0, -33)
-    --            , (Row 1, Col 0, 6)
-    --            , (Row 0, Col 1, 6)
-    --            , (Row 1, Col 1, -22)
-    --            , (Row 2, Col 1, 11.5)
-    --            , (Row 1, Col 2, 11.5)
-    --            , (Row 2, Col 2, -11)
-    --            ]
-    -- statusQuad <- copyQuad env lp qmat
-    -- case statusQuad of
-    --   Nothing -> return ()
-    --   Just msg -> error $ "CPXcopyquad error: " ++ msg
-
-    ------------------------
-
-
-    statusOpt <- qpopt env lp
+    statusOpt <- mipopt env lp
     case statusOpt of
       Nothing -> return ()
       Just msg -> error $ "CPXqpopt error: " ++ msg
 
+    putStrLn "solved mip"
 
 
-
-    statusSol <- getSolution env lp
+    statusSol <- getMIPSolution env lp
     case statusSol of
       Left msg -> error $ "CPXsolution error: " ++ msg
       Right sol -> do
