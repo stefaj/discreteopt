@@ -58,7 +58,7 @@ cpx_OFF =  0
 main :: IO ()
 main = sol' >>= print
 
-sol' :: IO ()
+gol' :: IO ()
 sol' = withEnv $ \env -> do
     -- prints some useful output stuff
   --setIntParam env CPX_PARAM_SCRIND cpx_ON
