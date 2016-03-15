@@ -112,7 +112,7 @@ int callback (CPXCENVptr env,
 
 
     lp = CPXcreateprob(env, &status, "lpex1");
-    CPXchgprobtype(env, lp, CPXPROB_MILP);
+    //CPXchgprobtype(env, lp, CPXPROB_MILP);
 
     CPXchgobjsen (env, lp, CPX_MAX);
 
