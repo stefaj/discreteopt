@@ -1,6 +1,7 @@
 import qualified Data.Vector as V
 import Control.Monad
-
+import Text.ParserCombinators.ReadPrec
+import Text.Read
 --  (Board, positionOfZero)
 type BoardState = (Board, Pos)
 type Board = V.Vector Int 
@@ -41,15 +42,26 @@ branch :: BoardState -> [BoardState]
 branch bs = zip (map (\n -> swapBoard board zpos n) neighbors) neighbors
     where neighbors = swap zpos 
           (board,zpos) = bs
-          swapBoard :: Board -> Pos -> Pos -> Board
-          swapBoard state a b = let av = state ! a
-                                    bv = state ! b
-                        in state V.// [(o a,bv),(o b,av)]
+
+swapBoard :: Board -> Pos -> Pos -> Board
+swapBoard state a b = let av = state ! a
+                          bv = state ! b
+                       in state V.// [(o a,bv),(o b,av)]
+
+swapBoardState :: BoardState -> Pos -> BoardState
+swapBoardState (board,zpos) pos = (swapBoard board zpos pos,pos)
+
+playLoop :: BoardState -> IO String
+playLoop boardState
+  | boardState == goalState = return "You won"
+playLoop bs@(board,zpos) = do
+  visualize' bs
+  putStr "\nEnter a move in the form of >>i j\n"
+  ij <- getLine >>= return . (map readMaybe) . words 
+  case ij of 
+    [Just i, Just j] -> if (i,j) `elem` swap zpos then playLoop (swapBoardState bs (i,j)) else playLoop bs
+    _ -> playLoop bs
 
 
-
-playLoop boardState = do
-  visualize' boardState
-  putStr "\nEnter a move in the form of
-  [i,j] <- getLine >>= return $ words
-  `
+main = do
+        playLoop startState
