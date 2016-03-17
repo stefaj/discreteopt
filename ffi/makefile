@@ -1,8 +1,8 @@
 CPLEX_DIR = /opt/ibm/ILOG/CPLEX_Studio_Community1263/cplex
 lib=$(CPLEX_DIR)/lib/x86-64_linux/static_pic/
 CPLEX_INC = $(CPLEX_DIR)/include
-sources = test.c
-executable = test
+sources = test4.c
+executable = test4
 
 
 COPT = -m64 -fPIC -fno-strict-aliasing

@@ -38,10 +38,6 @@ o (i,j) = (i*3 + j)
 -- d :: (Int) -> (Int, Int)
 d k = (k `div` 3, k `mod` 3) 
 
-branch :: BoardState -> [BoardState]
-branch bs = zip (map (\n -> swapBoard board zpos n) neighbors) neighbors
-    where neighbors = swap zpos 
-          (board,zpos) = bs
 
 swapBoard :: Board -> Pos -> Pos -> Board
 swapBoard state a b = let av = state ! a
@@ -61,6 +57,18 @@ playLoop bs@(board,zpos) = do
   case ij of 
     [Just i, Just j] -> if (i,j) `elem` swap zpos then playLoop (swapBoardState bs (i,j)) else playLoop bs
     _ -> playLoop bs
+
+
+branch :: BoardState -> [BoardState]
+branch bs = zip (map (\n -> swapBoard board zpos n) neighbors) neighbors
+    where neighbors = swap zpos 
+          (board,zpos) = bs
+
+solver states visited moves
+  | goalState `elem` states = goalState : (reverse moves)
+solver states visited moves = solver nextMoves (states ++ visited) 
+  where
+    nextMoves = filter (not . flip elem visite map branch states
 
 
 main = do
