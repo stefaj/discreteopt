@@ -20,6 +20,10 @@ executable4 = test4
 sources5 = test5.c
 executable5 = test5
 
+
+sources6 = test6.c
+executable6 = test6
+
 COPT = -m64 -fPIC -fno-strict-aliasing
 CLNFLAGS = -lcplex -lm -lpthread
 
@@ -69,6 +73,15 @@ test5: $(sources5)
 	$(CC) -DIL_STD  $(CFLAGS) $(sources5) -o $(executable5) $(CLNFLAGS)
 	@echo Running...
 	./$(executable5)
+
+
+
+test6: $(sources6)
+	@echo Building...
+	$(CC) -DIL_STD  $(CFLAGS) $(sources6) -o $(executable6) $(CLNFLAGS)
+	@echo Running...
+	./$(executable6)
+
 clean:
 	rm $(executable1)
 	rm $(executable2)
